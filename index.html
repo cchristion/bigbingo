@@ -1,218 +1,370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Sync Bingo (Fixed)</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Multiplayer Bingo</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-      body { font-family: sans-serif; text-align: center; background: #f4f4f4; color: #333; user-select: none; margin: 0; padding: 10px; }
-      
-      /* CONNECTION UI */
-      #connectUI { background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 8px; max-width: 400px; margin: 0 auto 20px auto; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-      .conn-btn { background: #007bff; color: white; border: 0; padding: 12px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; width: 100%; margin: 5px 0; font-size: 16px; }
-      .conn-input { padding: 10px; width: 60%; font-size: 16px; text-align: center; border: 1px solid #ccc; border-radius: 4px; text-transform: uppercase; }
-      #hostIdDisplay { font-size: 32px; color: #007bff; font-weight: 900; margin: 15px 0; letter-spacing: 2px; border: 2px dashed #007bff; padding: 10px; background: #eef7ff; }
-      
-      /* Grid */
-      table { width: 95vw; max-width: 500px; margin: 0 auto; border-collapse: collapse; table-layout: fixed; }
-      td { border: 1px solid #333; background: #fff; width: 20%; position: relative; padding-bottom: 20%; cursor: pointer; touch-action: manipulation; }
-      td span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(14px, 5vw, 24px); font-weight: bold; }
-      
-      /* States */
-      .marked { background: #ccc; }
-      .marked span { text-decoration: line-through; color: #666; }
-      .win { background: #d4edda !important; box-shadow: inset 0 0 0 3px #28a745; z-index: 1; }
-      .win span { color: #155724; text-decoration: none; font-weight: 900; }
-      
-      /* Header */
-      .bingo { margin: 10px 0; font-size: clamp(30px, 10vw, 40px); font-weight: 900; }
-      .bingo span { margin: 0 5px; color: #ddd; }
-      .done { color: #28a745 !important; text-decoration: line-through; }
-      #result { font-size: 28px; font-weight: bold; color: #28a745; min-height: 40px; margin-top: 10px; }
-      
-      /* Debug Log (Visible) */
-      #debugLog { font-family: monospace; font-size: 12px; color: #666; margin-top: 30px; text-align: left; background: #eee; padding: 10px; border-radius: 5px; max-height: 100px; overflow-y: auto; }
+      body {
+        font-family: sans-serif;
+        text-align: center;
+        background: #f4f4f4;
+        color: #333;
+        user-select: none;
+        margin: 0;
+        padding: 10px;
+      }
+
+      /* --- CONNECTION UI --- */
+      #connectUI {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 400px;
+        margin: 0 auto 20px auto;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+      .conn-btn {
+        background: #333;
+        color: white;
+        border: 0;
+        padding: 12px;
+        border-radius: 5px;
+        font-weight: bold;
+        cursor: pointer;
+        width: 100%;
+        margin: 5px 0;
+        font-size: 16px;
+      }
+      .conn-input {
+        padding: 10px;
+        width: 70%;
+        font-size: 18px;
+        text-align: center;
+        border: 2px solid #333;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-weight: bold;
+      }
+      #hostIdDisplay {
+        font-size: 36px;
+        color: #28a745;
+        font-weight: 900;
+        margin: 15px 0;
+        letter-spacing: 3px;
+        border: 2px dashed #28a745;
+        padding: 10px;
+        background: #e8f5e9;
+        user-select: text;
+      }
+
+      /* --- GRID --- */
+      table {
+        width: 95vw;
+        max-width: 500px;
+        margin: 0 auto;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      td {
+        border: 1px solid #333;
+        background: #fff;
+        width: 20%;
+        position: relative;
+        padding-bottom: 20%;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      td span {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(14px, 5vw, 24px);
+        font-weight: bold;
+      }
+
+      /* --- STATES --- */
+      .marked {
+        background: #555 !important;
+      }
+      .marked span {
+        text-decoration: line-through;
+        color: #ccc;
+      }
+      .win {
+        background: #d4edda !important;
+        box-shadow: inset 0 0 0 3px #28a745;
+        z-index: 1;
+      }
+      .win span {
+        color: #155724;
+        text-decoration: none;
+        font-weight: 900;
+      }
+
+      /* --- HEADER & FOOTER --- */
+      .bingo {
+        margin: 10px 0;
+        font-size: clamp(30px, 10vw, 40px);
+        font-weight: 900;
+      }
+      .bingo span {
+        margin: 0 5px;
+        color: #ddd;
+      }
+      .done {
+        color: #28a745 !important;
+        text-decoration: line-through;
+      }
+      #result {
+        font-size: 28px;
+        font-weight: bold;
+        color: #28a745;
+        min-height: 40px;
+        margin-top: 10px;
+      }
+      #statusMsg {
+        font-size: 12px;
+        color: #666;
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
-    
     <div id="connectUI">
       <div id="setupBtns">
-        <h3>1. Setup Connection</h3>
-        <button class="conn-btn" onclick="hostGame()">📡 Create Game (Host)</button>
-        <div style="margin:10px; color:#888">- OR -</div>
-        <input type="text" id="joinInput" class="conn-input" placeholder="HOST ID">
-        <button class="conn-btn" style="background:#28a745; width:auto;" onclick="joinGame()">Join Game</button>
+        <h3>1. Start Connection</h3>
+        <button
+          class="conn-btn"
+          style="background: #007bff"
+          onclick="hostGame()"
+        >
+          👑 Create New Game (Host)
+        </button>
+        <div style="margin: 10px; color: #888">- OR -</div>
+        <input
+          type="text"
+          id="joinInput"
+          class="conn-input"
+          placeholder="HOST ID"
+        />
+        <button
+          class="conn-btn"
+          style="background: #28a745; width: auto"
+          onclick="joinGame()"
+        >
+          ⚡ Join Game
+        </button>
       </div>
-      
-      <div id="hostArea" style="display:none;">
+
+      <div id="hostArea" style="display: none">
         <div>Share this Code:</div>
         <div id="hostIdDisplay">...</div>
         <div id="playerCount">Waiting for players...</div>
       </div>
 
-      <div id="joinArea" style="display:none;">
+      <div id="joinArea" style="display: none">
         <h3>✅ Connected!</h3>
-        <p>Waiting for Host to click a number...</p>
+        <p>You can click numbers too!</p>
       </div>
+      <div id="statusMsg"></div>
     </div>
 
-    <button onclick="init()">🔄 Reset Board</button>
-    <div class="bingo" id="letters"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
+    <button onclick="init()">🔄 Reset My Board</button>
+    <div class="bingo" id="letters">
+      <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
+    </div>
     <table id="board"></table>
     <div id="result"></div>
-    
-    <div id="debugLog">Log: Ready...</div>
 
     <script>
-      let board = [], peer, connList = [], myConn;
+      // --- CONFIG & STATE ---
+      let board = [],
+        peer,
+        connList = [],
+        myConn;
       let isHost = false;
+      let myPeerId = null;
       const $ = (id) => document.getElementById(id);
-      
-      function log(msg) {
-        const d = $("debugLog");
-        d.innerHTML = `<div>${new Date().toLocaleTimeString()} - ${msg}</div>` + d.innerHTML;
-      }
 
-      // --- 1. NETWORK LOGIC ---
+      // --- 1. NETWORK LOGIC (The Relay System) ---
 
       function hostGame() {
-        log("Starting Host...");
-        // Use a random ID logic, but handle collisions
-        const randomId = Math.random().toString(36).substring(2,6).toUpperCase();
+        $("statusMsg").innerText = "Connecting to PeerJS Cloud...";
+        // Generate a random ID (e.g., X7Z9)
+        const randomId = Math.random()
+          .toString(36)
+          .substring(2, 6)
+          .toUpperCase();
         setupPeer(randomId);
         isHost = true;
       }
 
       function joinGame() {
         const hostId = $("joinInput").value.trim().toUpperCase();
-        if(!hostId) return alert("Please enter the Host ID!");
-        
-        log("Joining Host: " + hostId);
+        if (!hostId) return alert("Please enter the Host ID!");
+        $("statusMsg").innerText = "Finding Host...";
         isHost = false;
-        
-        // Players don't need a specific ID, let server assign one
         setupPeer(null, hostId);
       }
 
-      function setupPeer(myId, connectToId = null) {
-        // Create Peer
-        if(myId) peer = new Peer(myId);
-        else peer = new Peer();
+      function setupPeer(id, hostIdToConnect) {
+        peer = new Peer(id); // If ID is null, server assigns one
 
-        // 1. Peer Opened (We have an ID)
-        peer.on('open', (id) => {
-          log("My Peer ID: " + id);
-          
-          if(isHost) {
+        peer.on("open", (assignedId) => {
+          myPeerId = assignedId;
+
+          if (isHost) {
+            // UI Update for Host
             $("setupBtns").style.display = "none";
             $("hostArea").style.display = "block";
-            $("hostIdDisplay").innerText = id;
-          } else if (connectToId) {
-            connectToHost(connectToId);
+            $("hostIdDisplay").innerText = assignedId;
+            $("statusMsg").innerText = "Host Ready.";
+          } else {
+            // If Player, immediately connect to Host
+            connectToHost(hostIdToConnect);
           }
         });
 
-        // 2. Peer Error (CRITICAL FIX)
-        peer.on('error', (err) => {
-          console.error(err);
-          log("ERROR: " + err.type);
-          alert("Connection Error: " + err.type + "\nTry refreshing or using a different ID.");
+        peer.on("error", (err) => {
+          alert("Connection Error: " + err.type);
         });
 
-        // 3. Incoming Connection (If I am Host)
-        peer.on('connection', (conn) => {
-          log("Incoming connection...");
-          connList.push(conn);
-          $("playerCount").innerText = `${connList.length} Player(s) Connected!`;
-          
-          // Listen for data just in case (optional)
-          conn.on('data', (data) => log("Received: " + data));
+        // HOST RECEIVING CONNECTION
+        peer.on("connection", (conn) => {
+          if (isHost) {
+            connList.push(conn);
+            $("playerCount").innerText =
+              `${connList.length} Player(s) Connected!`;
+
+            // Listen for data from this player
+            conn.on("data", (data) => {
+              handleData(data, conn.peer); // Handle logic
+            });
+          }
         });
       }
 
       function connectToHost(hostId) {
         myConn = peer.connect(hostId);
-        
-        myConn.on('open', () => {
-          log("Connected to Host!");
+
+        myConn.on("open", () => {
           $("setupBtns").style.display = "none";
           $("joinArea").style.display = "block";
+          $("statusMsg").innerText = "Connected to Host.";
         });
 
-        myConn.on('data', (num) => {
-          log("Host called: " + num);
-          handleRemoteCall(num);
-        });
-
-        myConn.on('error', (err) => log("Conn Error: " + err));
-      }
-
-      function broadcast(num) {
-        if(!isHost) return;
-        log("Broadcasting: " + num);
-        connList.forEach(c => {
-          if(c.open) c.send(num);
+        // PLAYER RECEIVING DATA (From Host)
+        myConn.on("data", (data) => {
+          handleData(data, "Host");
         });
       }
 
-      // --- 2. GAME LOGIC ---
+      // --- 2. THE RELAY LOGIC (Crucial Part) ---
+
+      function sendClick(number) {
+        // 1. Mark my own board immediately
+        markNumber(number);
+
+        // 2. Send to Network
+        if (isHost) {
+          // I am Host: Broadcast to ALL players
+          broadcast(number);
+        } else if (myConn && myConn.open) {
+          // I am Player: Send to Host (Host will relay to others)
+          myConn.send(number);
+        }
+      }
+
+      function handleData(number, senderId) {
+        // 1. Mark on my board
+        markNumber(number);
+
+        // 2. IF I AM HOST: Relay this message to everyone else!
+        if (isHost) {
+          broadcast(number); // This function sends to everyone except me
+        }
+      }
+
+      function broadcast(number) {
+        // Send to all connected players
+        connList.forEach((c) => {
+          if (c.open) c.send(number);
+        });
+      }
+
+      // --- 3. BINGO GAME LOGIC ---
 
       function init() {
-        // Standard Bingo Logic
         const nums = Array.from({ length: 25 }, (_, i) => i + 1);
+        // Shuffle
         for (let i = 24; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [nums[i], nums[j]] = [nums[j], nums[i]];
         }
-        
+
+        // Reset UI
         board = [];
         $("result").innerText = "";
         $("board").innerHTML = "";
-        Array.from($("letters").children).forEach((s) => s.classList.remove("done"));
+        Array.from($("letters").children).forEach((s) =>
+          s.classList.remove("done"),
+        );
 
         let n = 0;
         for (let r = 0; r < 5; r++) {
-          let row = $("board").insertRow(), bRow = [];
+          let row = $("board").insertRow(),
+            bRow = [];
           for (let c = 0; c < 5; c++) {
             let cell = row.insertCell();
             let val = nums[n++];
             cell.innerHTML = `<span>${val}</span>`;
-            cell.dataset.val = val; 
-            
+            cell.dataset.val = val;
+
             cell.onclick = () => {
-              // Click Logic
-              cell.classList.toggle("marked");
-              check();
-              
-              // Network Trigger
-              if(isHost) broadcast(val);
+              if (!cell.classList.contains("marked")) {
+                // Trigger the network logic
+                sendClick(val);
+              }
             };
             bRow.push(cell);
           }
           board.push(bRow);
         }
-        log("Board generated.");
       }
 
-      function handleRemoteCall(num) {
-        const cells = document.querySelectorAll('td');
-        cells.forEach(cell => {
-          if (parseInt(cell.dataset.val) === num && !cell.classList.contains('marked')) {
-            cell.classList.add('marked');
-            check();
+      function markNumber(num) {
+        // Find cell with this value
+        const cells = document.querySelectorAll("td");
+        cells.forEach((cell) => {
+          if (parseInt(cell.dataset.val) === parseInt(num)) {
+            if (!cell.classList.contains("marked")) {
+              cell.classList.add("marked");
+              checkWin();
+            }
           }
         });
       }
 
-      function check() {
-        const isComplete = (arr) => arr.every((c) => c.classList.contains("marked"));
+      function checkWin() {
+        const isComplete = (arr) =>
+          arr.every((c) => c.classList.contains("marked"));
         let wins = 0;
         const winningCells = new Set();
-        const registerWin = (arr) => { wins++; arr.forEach((cell) => winningCells.add(cell)); };
+        const registerWin = (arr) => {
+          wins++;
+          arr.forEach((cell) => winningCells.add(cell));
+        };
 
-        for (let r = 0; r < 5; r++) if (isComplete(board[r])) registerWin(board[r]);
+        // Rows, Cols, Diagonals
+        for (let r = 0; r < 5; r++)
+          if (isComplete(board[r])) registerWin(board[r]);
         for (let c = 0; c < 5; c++) {
           let col = board.map((r) => r[c]);
           if (isComplete(col)) registerWin(col);
@@ -222,15 +374,22 @@
         let d2 = board.map((r, i) => r[4 - i]);
         if (isComplete(d2)) registerWin(d2);
 
-        board.flat().forEach((cell) => cell.classList.toggle("win", winningCells.has(cell)));
+        // Highlight
+        board
+          .flat()
+          .forEach((cell) =>
+            cell.classList.toggle("win", winningCells.has(cell)),
+          );
 
         let score = Math.min(wins, 5);
-        Array.from($("letters").children).forEach((s, i) => s.classList.toggle("done", i < score));
+        Array.from($("letters").children).forEach((s, i) =>
+          s.classList.toggle("done", i < score),
+        );
 
         if (score === 5) $("result").innerText = "🎉 BINGO! 🎉";
-        else $("result").innerText = "";
       }
 
+      // Start Game
       init();
     </script>
   </body>
